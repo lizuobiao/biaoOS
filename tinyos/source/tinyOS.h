@@ -10,5 +10,12 @@ typedef struct tTask{
 	tTaskStack * stack;
 }tTask;
 
+extern tTask * currentTask;
+
+extern tTask * nextTask;
+
+void tTaskRunFirst (void); 
+void tTaskSwitch (void);
+
 #endif
 
