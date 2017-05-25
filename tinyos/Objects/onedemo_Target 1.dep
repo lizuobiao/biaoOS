@@ -1,7 +1,13 @@
 Dependencies for Project 'onedemo', Target 'Target 1': (DO NOT MODIFY !)
-F (.\source\main.c)(0x5925AAF4)(-c --cpu Cortex-M3 --li -g -O0 --apcs=interwork --split_sections-I C:\Users\Administrator\Desktop\tinyOS\biaoos\tinyos\RTE-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include-D__UVISION_VERSION="514" -D_RTE_ -DARMCM3-o .\objects\main.o --omf_browse .\objects\main.crf --depend .\objects\main.d)
+F (.\source\main.c)(0x5926F440)(-c --cpu Cortex-M3 --li -g -O0 --apcs=interwork --split_sections-I C:\Users\Administrator\Desktop\tinyOS\biaoos\tinyos\RTE-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include-D__UVISION_VERSION="514" -D_RTE_ -DARMCM3-o .\objects\main.o --omf_browse .\objects\main.crf --depend .\objects\main.d)
 I (source\tinyOS.h)(0x5925A8C5)
 I (F:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5789F501)
+I (F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include\ARMCM3.h)(0x562075B4)
+I (F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cm3.h)(0x5625B70C)
+I (F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cmInstr.h)(0x5625A350)
+I (F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\cmsis_armcc.h)(0x5625A350)
+I (F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cmFunc.h)(0x5625A350)
+I (F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include\system_ARMCM3.h)(0x55D41F08)
 F (.\source\switch.c)(0x5925AB2C)(-c --cpu Cortex-M3 --li -g -O0 --apcs=interwork --split_sections-I C:\Users\Administrator\Desktop\tinyOS\biaoos\tinyos\RTE-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include-D__UVISION_VERSION="514" -D_RTE_ -DARMCM3-o .\objects\switch.o --omf_browse .\objects\switch.crf --depend .\objects\switch.d)
 I (source\tinyOS.h)(0x5925A8C5)
 I (F:\Keil_v5\ARM\ARMCC\include\stdint.h)(0x5789F501)
