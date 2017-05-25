@@ -1,10 +1,11 @@
-
 #include "tinyOS.h"
 #include "ARMCM3.h"
 
 tTask * currentTask;
 
 tTask * nextTask;
+
+tTask * idleTask;
 
 tTask * taskTable[2];
 
@@ -34,20 +35,91 @@ void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stac
 }
 
 void tTaskSched () 
-{    
-    // 这里的算法很简单。
-    // 一共有两个任务。选择另一个任务，然后切换过去
-    if (currentTask == taskTable[0]) 
+{       
+    // 空闲任务只有在所有其它任务都不是延时状态时才执行
+    // 所以，我们先检查下当前任务是否是空闲任务
+    if (currentTask == idleTask) 
     {
-        nextTask = taskTable[1];
-    }
+        // 如果是的话，那么去执行task1或者task2中的任意一个
+        // 当然，如果某个任务还在延时状态，那么就不应该切换到他。
+        // 如果所有任务都在延时，那么就继续运行空闲任务，不进行任何切换了
+        if (taskTable[0]->delayTicks == 0) 
+        {
+            nextTask = taskTable[0];
+        }           
+        else if (taskTable[1]->delayTicks == 0) 
+        {
+            nextTask = taskTable[1];
+        } else 
+        {
+            return;
+        }
+    } 
     else 
     {
-        nextTask = taskTable[0];
+        // 如果是task1或者task2的话，检查下另外一个任务
+        // 如果另外的任务不在延时中，就切换到该任务
+        // 否则，判断下当前任务是否应该进入延时状态，如果是的话，就切换到空闲任务。否则就不进行任何切换
+        if (currentTask == taskTable[0]) 
+        {
+            if (taskTable[1]->delayTicks == 0) 
+            {
+                nextTask = taskTable[1];
+            }
+            else if (currentTask->delayTicks != 0) 
+            {
+                nextTask = idleTask;
+            } 
+            else 
+            {
+                return;
+            }
+        }
+        else if (currentTask == taskTable[1]) 
+        {
+            if (taskTable[0]->delayTicks == 0) 
+            {
+                nextTask = taskTable[0];
+            }
+            else if (currentTask->delayTicks != 0) 
+            {
+                nextTask = idleTask;
+            }
+            else 
+            {
+                return;
+            }
+        }
     }
     
     tTaskSwitch();
 }
+
+void tTaskSystemTickHandler () 
+{
+    // 检查所有任务的delayTicks数，如果不0的话，减1。
+    int i;
+    for (i = 0; i < 2; i++) 
+    {
+        if (taskTable[i]->delayTicks > 0)
+        {
+            taskTable[i]->delayTicks--;
+        }
+    }
+    
+    // 这个过程中可能有任务延时完毕(delayTicks = 0)，进行一次调度。
+    tTaskSched();
+}
+
+void tTaskDelay (uint32_t delay) {
+    // 配置好当前要延时的ticks数
+    currentTask->delayTicks = delay;
+
+    // 然后进行任务切换，切换至另一个任务，或者空闲任务
+    // delayTikcs会在时钟中断中自动减1.当减至0时，会切换回来继续运行。
+    tTaskSched();
+}
+
 
 void tSetSysTickPeriod(uint32_t ms)
 {
@@ -61,12 +133,7 @@ void tSetSysTickPeriod(uint32_t ms)
 
 void SysTick_Handler () 
 {
-    // 什么都没做，除了进行任务切换
-    // 由于tTaskSched自动选择另一个任务切换过去，所以其效果就是
-    // 两个任务交替运行，与上一次例子不同的是，这是由系统时钟节拍推动的
-    // 如果说，上一个例子里需要每个任务主动去调用tTaskSched切换，那么这里就是不管任务愿不愿意，CPU
-    // 的运行权都会被交给另一个任务。这样对每个任务就很公平了，不存在某个任务拒不调用tTaskSched而一直占用CPU的情况
-    tTaskSched();
+    tTaskSystemTickHandler();
 }
 
 
@@ -82,10 +149,10 @@ void task1Entry (void * param)
     for (;;) 
     {
         task1Flag = 1;
-        delay(100);
+        tTaskDelay(100);
         task1Flag = 0;
-        delay(100);
- //       tTaskSched();
+        tTaskDelay(100);
+//      tTaskSched();
     }
 }
 
@@ -95,9 +162,9 @@ void task2Entry (void * param)
     for (;;) 
     {
         task2Flag = 1;
-        delay(100);
+        tTaskDelay(100);
         task2Flag = 0;
-        delay(100);
+        tTaskDelay(100);
   //      tTaskSched();
     }
 }
@@ -109,6 +176,19 @@ tTask tTask2;
 tTaskStack task1Env[1024];     
 tTaskStack task2Env[1024];
 
+// 用于空闲任务的任务结构和堆栈空间
+tTask tTaskIdle;
+tTaskStack idleTaskEnv[1024];
+int idle_count = 0;
+
+void idleTaskEntry (void * param) {
+    for (;;)
+    {
+		idle_count++;
+        // 空闲任务什么都不做
+    }
+}
+
 int main()
 {
 	tTaskInit(&tTask1,task1Entry,(void *)0x11111111, &task1Env[1024]);
@@ -116,6 +196,9 @@ int main()
 	
 	taskTable[0] = &tTask1;
     taskTable[1] = &tTask2;
+	
+	tTaskInit(&tTaskIdle, idleTaskEntry, (void *)0, &idleTaskEnv[1024]);
+    idleTask = &tTaskIdle;
 	
 	nextTask = taskTable[0];
 
