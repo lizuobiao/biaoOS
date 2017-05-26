@@ -26,6 +26,16 @@
 #define MEM32(addr)         *(volatile unsigned long *)(addr)
 #define MEM8(addr)          *(volatile unsigned char *)(addr)
 
+uint32_t tTaskEnterCritical (void) 
+{
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();        // CPSID I
+    return primask;
+}
+
+void tTaskExitCritical (uint32_t status) {
+    __set_PRIMASK(status);
+}
 // 下面的代码中，用到了C文件嵌入ARM汇编
 // 基本语法为:__asm 返回值 函数名(参数声明) {....}， 更具体的用法见Keil编译器手册，此处不再详注。
 

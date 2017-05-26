@@ -9,12 +9,12 @@ tTask * idleTask;
 
 tTask * taskTable[2];
 
-
+uint32_t tickCounter;
 
 void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stack)
 {
 	
-	 *(--stack) = (unsigned long)(1<<24);                // XPSR, 设置了Thumb模式，恢复到Thumb状态而非ARM状态运行
+	*(--stack) = (unsigned long)(1<<24);                // XPSR, 设置了Thumb模式，恢复到Thumb状态而非ARM状态运行
     *(--stack) = (unsigned long)entry;                  // 程序的入口地址
     *(--stack) = (unsigned long)0x14;                   // R14(LR), 任务不会通过return xxx结束自己，所以未用
     *(--stack) = (unsigned long)0x12;                   // R12, 未用
@@ -31,11 +31,13 @@ void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stac
     *(--stack) = (unsigned long)0x5;                    // R5, 未用
     *(--stack) = (unsigned long)0x4;                    // R4, 未用
 	
-	task->stack = stack;
+	task->stack = stack; 
+	task->delayTicks = 0;
 }
 
 void tTaskSched () 
-{       
+{
+	uint32_t status = tTaskEnterCritical();
     // 空闲任务只有在所有其它任务都不是延时状态时才执行
     // 所以，我们先检查下当前任务是否是空闲任务
     if (currentTask == idleTask) 
@@ -93,12 +95,15 @@ void tTaskSched ()
     }
     
     tTaskSwitch();
+	
+	tTaskExitCritical(status);
 }
 
 void tTaskSystemTickHandler () 
 {
     // 检查所有任务的delayTicks数，如果不0的话，减1。
     int i;
+	uint32_t status = tTaskEnterCritical();
     for (i = 0; i < 2; i++) 
     {
         if (taskTable[i]->delayTicks > 0)
@@ -107,14 +112,21 @@ void tTaskSystemTickHandler ()
         }
     }
     
+	
+	tickCounter++;
+	
+	tTaskExitCritical(status);
     // 这个过程中可能有任务延时完毕(delayTicks = 0)，进行一次调度。
     tTaskSched();
 }
 
 void tTaskDelay (uint32_t delay) {
+	
+	uint32_t status = tTaskEnterCritical();
     // 配置好当前要延时的ticks数
     currentTask->delayTicks = delay;
 
+	tTaskExitCritical(status);
     // 然后进行任务切换，切换至另一个任务，或者空闲任务
     // delayTikcs会在时钟中断中自动减1.当减至0时，会切换回来继续运行。
     tTaskSched();
@@ -161,6 +173,13 @@ void task2Entry (void * param)
 {
     for (;;) 
     {
+		 uint32_t i;
+        uint32_t status = tTaskEnterCritical();
+        uint32_t counter = tickCounter;
+        for (i = 0; i < 0xFFFF; i++) {}         // 故意产生长的延时，以便在此期间发生中断
+        tickCounter = counter + 1;
+		
+		tTaskExitCritical(status);
         task2Flag = 1;
         tTaskDelay(100);
         task2Flag = 0;

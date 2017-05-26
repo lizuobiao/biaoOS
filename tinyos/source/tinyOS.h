@@ -19,5 +19,7 @@ extern tTask * nextTask;
 void tTaskRunFirst (void); 
 void tTaskSwitch (void);
 
+uint32_t tTaskEnterCritical (void);
+void tTaskExitCritical (uint32_t status);
 #endif
 
