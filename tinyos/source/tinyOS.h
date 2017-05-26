@@ -18,6 +18,10 @@ extern tTask * nextTask;
 
 void tTaskRunFirst (void); 
 void tTaskSwitch (void);
+void tTaskSchedInit (void);
+void tTaskSchedDisable (void);
+void tTaskSchedEnable (void);
+void tTaskSched (void);
 
 uint32_t tTaskEnterCritical (void);
 void tTaskExitCritical (uint32_t status);

@@ -9,7 +9,7 @@ tTask * idleTask;
 
 tTask * taskTable[2];
 
-uint32_t tickCounter;
+uint8_t schedLockCount;
 
 void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stack)
 {
@@ -35,11 +35,49 @@ void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stac
 	task->delayTicks = 0;
 }
 
+void tTaskSchedInit (void)
+{
+    schedLockCount = 0;
+}
+
+void tTaskSchedDisable (void) 
+{
+    uint32_t status = tTaskEnterCritical();
+
+    if (schedLockCount < 255) 
+    {
+        schedLockCount++;
+    }
+
+    tTaskExitCritical(status);
+}
+
+void tTaskSchedEnable (void) 
+{
+    uint32_t status = tTaskEnterCritical();
+
+    if (schedLockCount > 0) 
+    {
+        if (--schedLockCount == 0) 
+        {
+            tTaskSched(); 
+        }
+    }
+
+    tTaskExitCritical(status);
+}
 void tTaskSched () 
 {
 	uint32_t status = tTaskEnterCritical();
     // 空闲任务只有在所有其它任务都不是延时状态时才执行
     // 所以，我们先检查下当前任务是否是空闲任务
+	
+	if (schedLockCount > 0) 
+    {
+        tTaskExitCritical(status);
+        return;
+    }
+	
     if (currentTask == idleTask) 
     {
         // 如果是的话，那么去执行task1或者task2中的任意一个
@@ -113,8 +151,6 @@ void tTaskSystemTickHandler ()
     }
     
 	
-	tickCounter++;
-	
 	tTaskExitCritical(status);
     // 这个过程中可能有任务延时完毕(delayTicks = 0)，进行一次调度。
     tTaskSched();
@@ -154,16 +190,24 @@ void delay(int count)
 	while(--count);
 }
 
+int shareCount;
+
 int task1Flag;
 void task1Entry (void * param) 
 {
 	tSetSysTickPeriod(10);
     for (;;) 
     {
-        task1Flag = 1;
-        tTaskDelay(100);
+		int var;
+		var = shareCount;
+		
+		task1Flag = 1;
+        tTaskDelay(1);
+		
+		var++;
+        shareCount = var;
         task1Flag = 0;
-        tTaskDelay(100);
+        tTaskDelay(1);
 //      tTaskSched();
     }
 }
@@ -173,13 +217,9 @@ void task2Entry (void * param)
 {
     for (;;) 
     {
-		 uint32_t i;
-        uint32_t status = tTaskEnterCritical();
-        uint32_t counter = tickCounter;
-        for (i = 0; i < 0xFFFF; i++) {}         // 故意产生长的延时，以便在此期间发生中断
-        tickCounter = counter + 1;
 		
-		tTaskExitCritical(status);
+		shareCount++;
+		
         task2Flag = 1;
         tTaskDelay(100);
         task2Flag = 0;
@@ -220,7 +260,8 @@ int main()
     idleTask = &tTaskIdle;
 	
 	nextTask = taskTable[0];
-
+	
+	tTaskSchedInit();
   // 切换到nextTask， 这个函数永远不会返回
     tTaskRunFirst();
     return 0;
