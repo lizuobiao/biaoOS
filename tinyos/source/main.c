@@ -190,22 +190,38 @@ void delay(int count)
 	while(--count);
 }
 
-int shareCount;
-
+int firstSet;
 int task1Flag;
 void task1Entry (void * param) 
 {
+	 tBitmap bitmap;
+    int i;
+
+    tBitmapInit(&bitmap);
+
+    // 依次从最高位开始，将所有位Set，然后检查第1个Set的位置序号
+    for (i = tBitmapPosCount() - 1; i >= 0 ; i--) 
+    {
+        tBitmapSet(&bitmap, i);
+
+        // firstSet的值应当依次为7,6,5,....,1,0
+        firstSet = tBitmapGetFirstSet(&bitmap);
+    }
+
+    // 依次从第0位开始，将所有位Set，然后检查实际Set的位置序号
+    for (i = 0; i < tBitmapPosCount(); i++) 
+    {
+        tBitmapClear(&bitmap, i);
+        
+        // firstSet的值应当依次为7,6,5,....,1,0
+        firstSet = tBitmapGetFirstSet(&bitmap);
+    }
 	tSetSysTickPeriod(10);
     for (;;) 
     {
-		int var;
-		var = shareCount;
 		
 		task1Flag = 1;
         tTaskDelay(1);
-		
-		var++;
-        shareCount = var;
         task1Flag = 0;
         tTaskDelay(1);
 //      tTaskSched();
@@ -217,8 +233,6 @@ void task2Entry (void * param)
 {
     for (;;) 
     {
-		
-		shareCount++;
 		
         task2Flag = 1;
         tTaskDelay(100);
