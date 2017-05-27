@@ -427,6 +427,16 @@
               <FileType>5</FileType>
               <FilePath>.\source\tinyOS.h</FilePath>
             </File>
+            <File>
+              <FileName>tBitmap.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\source\tBitmap.c</FilePath>
+            </File>
+            <File>
+              <FileName>tLib.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\source\tLib.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

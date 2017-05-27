@@ -7,11 +7,17 @@ tTask * nextTask;
 
 tTask * idleTask;
 
-tTask * taskTable[2];
+//tTask * taskTable[2];
+
+// 任务优先级的标记位置结构
+tBitmap taskPrioBitmap;
+
+// 所有任务的指针数组：简单起见，只使用两个任务
+tTask * taskTable[TINYOS_PRO_COUNT];
 
 uint8_t schedLockCount;
 
-void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stack)
+void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,uint32_t * stack)
 {
 	
 	*(--stack) = (unsigned long)(1<<24);                // XPSR, 设置了Thumb模式，恢复到Thumb状态而非ARM状态运行
@@ -33,6 +39,16 @@ void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t * stac
 	
 	task->stack = stack; 
 	task->delayTicks = 0;
+    task->prio = prio;                                  // 设置任务的优先级
+
+    taskTable[prio] = task;                             // 填入任务优先级表
+    tBitmapSet(&taskPrioBitmap, prio);                  // 标记优先级位置中的相应位
+}
+
+tTask * tTaskHighestReady (void) 
+{
+    uint32_t highestPrio = tBitmapGetFirstSet(&taskPrioBitmap);
+    return taskTable[highestPrio];
 }
 
 void tTaskSchedInit (void)
@@ -68,6 +84,7 @@ void tTaskSchedEnable (void)
 }
 void tTaskSched () 
 {
+	tTask * tempTask;
 	uint32_t status = tTaskEnterCritical();
     // 空闲任务只有在所有其它任务都不是延时状态时才执行
     // 所以，我们先检查下当前任务是否是空闲任务
@@ -78,61 +95,14 @@ void tTaskSched ()
         return;
     }
 	
-    if (currentTask == idleTask) 
+	tempTask = tTaskHighestReady();
+    if (tempTask != currentTask) 
     {
-        // 如果是的话，那么去执行task1或者task2中的任意一个
-        // 当然，如果某个任务还在延时状态，那么就不应该切换到他。
-        // 如果所有任务都在延时，那么就继续运行空闲任务，不进行任何切换了
-        if (taskTable[0]->delayTicks == 0) 
-        {
-            nextTask = taskTable[0];
-        }           
-        else if (taskTable[1]->delayTicks == 0) 
-        {
-            nextTask = taskTable[1];
-        } else 
-        {
-            return;
-        }
-    } 
-    else 
-    {
-        // 如果是task1或者task2的话，检查下另外一个任务
-        // 如果另外的任务不在延时中，就切换到该任务
-        // 否则，判断下当前任务是否应该进入延时状态，如果是的话，就切换到空闲任务。否则就不进行任何切换
-        if (currentTask == taskTable[0]) 
-        {
-            if (taskTable[1]->delayTicks == 0) 
-            {
-                nextTask = taskTable[1];
-            }
-            else if (currentTask->delayTicks != 0) 
-            {
-                nextTask = idleTask;
-            } 
-            else 
-            {
-                return;
-            }
-        }
-        else if (currentTask == taskTable[1]) 
-        {
-            if (taskTable[0]->delayTicks == 0) 
-            {
-                nextTask = taskTable[0];
-            }
-            else if (currentTask->delayTicks != 0) 
-            {
-                nextTask = idleTask;
-            }
-            else 
-            {
-                return;
-            }
-        }
+        nextTask = tempTask;
+        tTaskSwitch();   
     }
     
-    tTaskSwitch();
+//    tTaskSwitch();
 	
 	tTaskExitCritical(status);
 }
@@ -142,11 +112,14 @@ void tTaskSystemTickHandler ()
     // 检查所有任务的delayTicks数，如果不0的话，减1。
     int i;
 	uint32_t status = tTaskEnterCritical();
-    for (i = 0; i < 2; i++) 
+    for (i = 0; i < TINYOS_PRO_COUNT; i++) 
     {
         if (taskTable[i]->delayTicks > 0)
         {
             taskTable[i]->delayTicks--;
+        }else 
+        {
+            tBitmapSet(&taskPrioBitmap, i);
         }
     }
     
@@ -161,7 +134,7 @@ void tTaskDelay (uint32_t delay) {
 	uint32_t status = tTaskEnterCritical();
     // 配置好当前要延时的ticks数
     currentTask->delayTicks = delay;
-
+	tBitmapClear(&taskPrioBitmap, currentTask->prio);
 	tTaskExitCritical(status);
     // 然后进行任务切换，切换至另一个任务，或者空闲任务
     // delayTikcs会在时钟中断中自动减1.当减至0时，会切换回来继续运行。
@@ -194,28 +167,6 @@ int firstSet;
 int task1Flag;
 void task1Entry (void * param) 
 {
-	 tBitmap bitmap;
-    int i;
-
-    tBitmapInit(&bitmap);
-
-    // 依次从最高位开始，将所有位Set，然后检查第1个Set的位置序号
-    for (i = tBitmapPosCount() - 1; i >= 0 ; i--) 
-    {
-        tBitmapSet(&bitmap, i);
-
-        // firstSet的值应当依次为7,6,5,....,1,0
-        firstSet = tBitmapGetFirstSet(&bitmap);
-    }
-
-    // 依次从第0位开始，将所有位Set，然后检查实际Set的位置序号
-    for (i = 0; i < tBitmapPosCount(); i++) 
-    {
-        tBitmapClear(&bitmap, i);
-        
-        // firstSet的值应当依次为7,6,5,....,1,0
-        firstSet = tBitmapGetFirstSet(&bitmap);
-    }
 	tSetSysTickPeriod(10);
     for (;;) 
     {
@@ -235,9 +186,9 @@ void task2Entry (void * param)
     {
 		
         task2Flag = 1;
-        tTaskDelay(100);
+        tTaskDelay(1);
         task2Flag = 0;
-        tTaskDelay(100);
+        tTaskDelay(1);
   //      tTaskSched();
     }
 }
@@ -264,18 +215,18 @@ void idleTaskEntry (void * param) {
 
 int main()
 {
-	tTaskInit(&tTask1,task1Entry,(void *)0x11111111, &task1Env[1024]);
-	tTaskInit(&tTask2,task2Entry,(void *)0x22222222, &task2Env[1024]);
+	tTaskSchedInit();
+	tTaskInit(&tTask1,task1Entry,(void *)0x11111111,0, &task1Env[1024]);
+	tTaskInit(&tTask2,task2Entry,(void *)0x22222222,1,&task2Env[1024]);
 	
 	taskTable[0] = &tTask1;
     taskTable[1] = &tTask2;
 	
-	tTaskInit(&tTaskIdle, idleTaskEntry, (void *)0, &idleTaskEnv[1024]);
+	tTaskInit(&tTaskIdle, idleTaskEntry, (void *)0,TINYOS_PRO_COUNT-1,&idleTaskEnv[1024]);
     idleTask = &tTaskIdle;
 	
-	nextTask = taskTable[0];
+	nextTask = tTaskHighestReady();
 	
-	tTaskSchedInit();
   // 切换到nextTask， 这个函数永远不会返回
     tTaskRunFirst();
     return 0;
