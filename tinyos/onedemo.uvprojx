@@ -437,6 +437,11 @@
               <FileType>5</FileType>
               <FilePath>.\source\tLib.h</FilePath>
             </File>
+            <File>
+              <FileName>tconfig.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\source\tconfig.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

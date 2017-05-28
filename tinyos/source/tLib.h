@@ -67,4 +67,41 @@ void tBitmapClear (tBitmap * bitmap, uint32_t pos);
 ***********************************************************************************************************/
 uint32_t tBitmapGetFirstSet (tBitmap * bitmap);
 
+
+// tinyOS链表的结点类型
+typedef struct _tNode
+{
+	// 该结点的前一个结点
+    struct _tNode * preNode;
+
+    // 该结点的后一个结点
+    struct _tNode * nextNode;
+}tNode;
+
+void tNodeInit (tNode * node);
+
+// tinyOS链表类型
+typedef struct _tList
+{   
+	// 该链表的头结点
+    tNode headNode;
+
+    // 该链表中所有结点数量
+    uint32_t nodeCount;
+}tList;
+
+#define tNodeParent(node, parent, name) (parent *)((uint32_t)node - (uint32_t)&((parent *)0)->name);
+void tListInit (tList * list);
+uint32_t tListCount (tList * list);
+tNode * tListFirst (tList * list);
+tNode * tListLast (tList * list);
+tNode * tListPre (tList * list, tNode * node);
+tNode * tListNext (tList * list, tNode * node);
+void tListRemoveAll (tList * list);
+void tListAddFirst (tList * list, tNode * node);
+void tListAddLast (tList * list, tNode * node);
+tNode * tListRemoveFirst (tList * list);
+void tListInsertAfter (tList * list, tNode * nodeAfter, tNode * nodeToInsert);
+void tListRemove (tList * list, tNode * node);
+
 #endif /* TLIB_H */
