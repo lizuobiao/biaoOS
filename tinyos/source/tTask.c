@@ -96,3 +96,94 @@ void tTaskWakeUp (tTask * task)
 }
 
 
+void tTaskSetCleanCallFunc (tTask * task, void (*clean)(void * param), void * param) 
+{
+    task->clean = clean;
+    task->cleanParam = param;
+}
+
+void tTaskForceDelete (tTask * task) 
+{
+    // 进入临界区
+    uint32_t status = tTaskEnterCritical();
+
+     // 如果任务处于延时状态，则从延时队列中删除
+    if (task->state & TINYOS_TASK_STATE_DELAYED) 
+    {
+        tTimeTaskRemove(task);
+    }
+		// 如果任务不处于挂起状态，那么就是就绪态，从就绪表中删除
+    else if (!(task->state & TINYOS_TASK_STATE_SUSPEND))
+    {
+        tTaskSchedRemove(task);
+    }
+
+    // 删除时，如果有设置清理函数，则调用清理函数
+    if (task->clean) 
+    {
+        task->clean(task->cleanParam);
+    }
+
+    // 如果删除的是自己，那么需要切换至另一个任务，所以执行一次任务调度
+    if (currentTask == task) 
+    {
+        tTaskSched();
+    }
+
+    // 退出临界区
+    tTaskExitCritical(status); 
+}
+
+void tTaskRequestDelete (tTask * task)
+{
+   // 进入临界区
+    uint32_t status = tTaskEnterCritical();
+
+    // 设置清除删除标记
+    task->requestDeleteFlag = 1;
+
+    // 退出临界区
+    tTaskExitCritical(status); 
+}
+
+uint8_t tTaskIsRequestedDelete (void)
+{
+    uint8_t delete;
+
+   // 进入临界区
+    uint32_t status = tTaskEnterCritical();
+
+    // 获取请求删除标记
+    delete = currentTask->requestDeleteFlag;
+
+    // 退出临界区
+    tTaskExitCritical(status); 
+
+    return delete;
+}
+
+void tTaskDeleteSelf (void)
+{
+    // 进入临界区
+    uint32_t status = tTaskEnterCritical();
+
+    // 任务在调用该函数时，必须是处于就绪状态，不可能处于延时或挂起等其它状态
+    // 所以，只需要从就绪队列中移除即可
+    tTaskSchedRemove(currentTask);
+
+    // 删除时，如果有设置清理函数，则调用清理函数
+    if (currentTask->clean)
+    {
+        currentTask->clean(currentTask->cleanParam);
+    }
+
+    // 接下来，肯定是切换到其它任务去运行
+    tTaskSched();
+
+    // 退出临界区
+    tTaskExitCritical(status);
+}
+
+
+
+

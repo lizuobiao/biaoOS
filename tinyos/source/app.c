@@ -3,22 +3,30 @@
 tTask tTask1;
 tTask tTask2;
 tTask tTask3;
+tTask tTask4;
 tTaskStack task1Env[1024];     
 tTaskStack task2Env[1024];
 tTaskStack task3Env[1024];
-
+tTaskStack task4Env[1024];
 
 int task1Flag;
+
+void task1DestroyFunc (void * param) 
+{
+    task1Flag = 0;
+}
+
 void task1Entry (void * param) 
 {
 	tSetSysTickPeriod(10);
+	
+	tTaskSetCleanCallFunc(currentTask, task1DestroyFunc, (void *)0);
     for (;;) 
     {
 		task1Flag = 1;
-		tTaskSuspend(currentTask);
+		tTaskDelay(1);
         task1Flag = 0;
-		tTaskSuspend(currentTask);
-//      tTaskSched();
+		tTaskDelay(1);
     }
 }
 
@@ -32,16 +40,21 @@ void delay ()
 int task2Flag;
 void task2Entry (void * param) 
 {
+	int task1Deleted = 0;
+	
     for (;;) 
     {
 		
         task2Flag = 1;
         tTaskDelay(1);
-		tTaskWakeUp(&tTask1);
         task2Flag = 0;
         tTaskDelay(1);
-	//	tTaskWakeUp(&tTask1);
-  //      tTaskSched();
+		
+		 if (!task1Deleted) 
+        {
+            tTaskForceDelete(&tTask1);
+            task1Deleted = 1;
+        }
     }
 }
 
@@ -50,10 +63,42 @@ void task3Entry (void * param)
 {
     for (;;)
     {
+		
+		// 检查是否要求删除任务自己
+        if (tTaskIsRequestedDelete())
+        {
+            // 做一些清理工作
+            task3Flag = 0;
+
+            // 然后主动删除自己
+            tTaskDeleteSelf();
+        }
+		
         task3Flag = 0;
         tTaskDelay(1);
         task3Flag = 1;
         tTaskDelay(1);
+    }
+}
+
+int task4Flag;
+void task4Entry (void * param) 
+{
+    int task3Deleted = 0;
+
+    for (;;) 
+    {
+        task4Flag = 1;
+        tTaskDelay(1);
+        task4Flag = 0;
+        tTaskDelay(1);
+
+        // 请求删除任务3
+        if (!task3Deleted) 
+        {
+            tTaskRequestDelete(&tTask3);
+            task3Deleted = 1;
+        }
     }
 }
 
@@ -63,5 +108,6 @@ void tInitApp (void)
     tTaskInit(&tTask1, task1Entry, (void *)0x11111111, 0, &task1Env[1024]);
     tTaskInit(&tTask2, task2Entry, (void *)0x22222222, 1, &task2Env[1024]);
     tTaskInit(&tTask3, task3Entry, (void *)0x33333333, 1, &task3Env[1024]);
+	tTaskInit(&tTask4, task4Entry, (void *)0x44444444, 1, &task4Env[1024]);
 }
 

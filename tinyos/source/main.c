@@ -81,6 +81,21 @@ void tTaskSchedUnRdy (tTask * task)
     }
 }
 
+void tTimeTaskRemove (tTask * task)
+{
+    tListRemove(&tTaskDelayedList, &(task->delayNode));
+}
+
+void tTaskSchedRemove (tTask * task)
+{
+    tListRemove(&taskTable[task->prio], &(task->linkNode));
+	
+    if (tListCount(&taskTable[task->prio]) == 0) 
+    {
+        tBitmapClear(&taskPrioBitmap, task->prio);
+    }
+}
+
 void tTaskSched () 
 {
 	tTask * tempTask;
