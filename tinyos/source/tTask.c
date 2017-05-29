@@ -184,6 +184,19 @@ void tTaskDeleteSelf (void)
     tTaskExitCritical(status);
 }
 
+void tTaskGetInfo (tTask * task, tTaskInfo * info)
+{
+   // 进入临界区
+    uint32_t status = tTaskEnterCritical();
 
+    info->delayTicks = task->delayTicks;                // 延时信息
+    info->prio = task->prio;                            // 任务优先级
+    info->state = task->state;                          // 任务状态
+    info->slice = task->slice;                          // 剩余时间片
+    info->suspendCount = task->suspendCount;            // 被挂起的次数
+
+    // 退出临界区
+    tTaskExitCritical(status); 
+}
 
 

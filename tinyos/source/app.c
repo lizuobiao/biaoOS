@@ -10,17 +10,12 @@ tTaskStack task3Env[1024];
 tTaskStack task4Env[1024];
 
 int task1Flag;
-
-void task1DestroyFunc (void * param) 
-{
-    task1Flag = 0;
-}
-
 void task1Entry (void * param) 
 {
+	tTaskInfo taskInfo;
+	
 	tSetSysTickPeriod(10);
 	
-	tTaskSetCleanCallFunc(currentTask, task1DestroyFunc, (void *)0);
     for (;;) 
     {
 		task1Flag = 1;
@@ -30,18 +25,9 @@ void task1Entry (void * param)
     }
 }
 
-void delay ()
-{
-    int i;
-    for (i = 0; i < 0xFF; i++) {}
-}
-
-
 int task2Flag;
 void task2Entry (void * param) 
-{
-	int task1Deleted = 0;
-	
+{	
     for (;;) 
     {
 		
@@ -49,12 +35,7 @@ void task2Entry (void * param)
         tTaskDelay(1);
         task2Flag = 0;
         tTaskDelay(1);
-		
-		 if (!task1Deleted) 
-        {
-            tTaskForceDelete(&tTask1);
-            task1Deleted = 1;
-        }
+
     }
 }
 
@@ -63,17 +44,7 @@ void task3Entry (void * param)
 {
     for (;;)
     {
-		
-		// 检查是否要求删除任务自己
-        if (tTaskIsRequestedDelete())
-        {
-            // 做一些清理工作
-            task3Flag = 0;
-
-            // 然后主动删除自己
-            tTaskDeleteSelf();
-        }
-		
+			
         task3Flag = 0;
         tTaskDelay(1);
         task3Flag = 1;
@@ -84,7 +55,6 @@ void task3Entry (void * param)
 int task4Flag;
 void task4Entry (void * param) 
 {
-    int task3Deleted = 0;
 
     for (;;) 
     {
@@ -92,13 +62,6 @@ void task4Entry (void * param)
         tTaskDelay(1);
         task4Flag = 0;
         tTaskDelay(1);
-
-        // 请求删除任务3
-        if (!task3Deleted) 
-        {
-            tTaskRequestDelete(&tTask3);
-            task3Deleted = 1;
-        }
     }
 }
 
