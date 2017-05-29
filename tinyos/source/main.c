@@ -19,39 +19,6 @@ uint8_t schedLockCount;
 
 tList tTaskDelayedList;
 
-void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,uint32_t * stack)
-{
-	
-	*(--stack) = (unsigned long)(1<<24);                // XPSR, 设置了Thumb模式，恢复到Thumb状态而非ARM状态运行
-    *(--stack) = (unsigned long)entry;                  // 程序的入口地址
-    *(--stack) = (unsigned long)0x14;                   // R14(LR), 任务不会通过return xxx结束自己，所以未用
-    *(--stack) = (unsigned long)0x12;                   // R12, 未用
-    *(--stack) = (unsigned long)0x3;                    // R3, 未用
-    *(--stack) = (unsigned long)0x2;                    // R2, 未用
-    *(--stack) = (unsigned long)0x1;                    // R1, 未用
-    *(--stack) = (unsigned long)param;                  // R0 = param, 传给任务的入口函数
-    *(--stack) = (unsigned long)0x11;                   // R11, 未用
-    *(--stack) = (unsigned long)0x10;                   // R10, 未用
-    *(--stack) = (unsigned long)0x9;                    // R9, 未用
-    *(--stack) = (unsigned long)0x8;                    // R8, 未用
-    *(--stack) = (unsigned long)0x7;                    // R7, 未用
-    *(--stack) = (unsigned long)0x6;                    // R6, 未用
-    *(--stack) = (unsigned long)0x5;                    // R5, 未用
-    *(--stack) = (unsigned long)0x4;                    // R4, 未用
-	
-	task->slice = TINYOS_SLICE_MAX; 
-	task->stack = stack; 
-	task->delayTicks = 0;
-    task->prio = prio;                                  // 设置任务的优先级
-	task->state = TINYOS_TASK_STATE_RDY;                // 设置任务为就绪状态
-
-	 tNodeInit(&(task->linkNode)); 
-    tNodeInit(&(task->delayNode));
-	
-    tListAddLast(&taskTable[prio], &(task->linkNode));   // 填入任务优先级表
-    tBitmapSet(&taskPrioBitmap, prio);                  // 标记优先级位置中的相应位
-}
-
 tTask * tTaskHighestReady (void) 
 {
     uint32_t highestPrio = tBitmapGetFirstSet(&taskPrioBitmap);
@@ -195,93 +162,10 @@ void tTaskSystemTickHandler ()
     tTaskSched();
 }
 
-void tTaskDelay (uint32_t delay) {
-	
-	uint32_t status = tTaskEnterCritical();
 
-	tTimeTaskWait(currentTask, delay);
-	
-	tTaskSchedUnRdy(currentTask);
-
-	tTaskExitCritical(status);
-
-	
-    tTaskSched();
-}
-
-
-void tSetSysTickPeriod(uint32_t ms)
-{
-  SysTick->LOAD  = ms * SystemCoreClock / 1000 - 1; 
-  NVIC_SetPriority (SysTick_IRQn, (1<<__NVIC_PRIO_BITS) - 1);
-  SysTick->VAL   = 0;                           
-  SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk |
-                   SysTick_CTRL_TICKINT_Msk   |
-                   SysTick_CTRL_ENABLE_Msk; 
-}
-
-void SysTick_Handler () 
-{
-    tTaskSystemTickHandler();
-}
-
-
-
-int task1Flag;
-void task1Entry (void * param) 
-{
-	tSetSysTickPeriod(10);
-    for (;;) 
-    {
-		task1Flag = 1;
-        tTaskDelay(1);
-        task1Flag = 0;
-        tTaskDelay(1);
-//      tTaskSched();
-    }
-}
-
-void delay ()
-{
-    int i;
-    for (i = 0; i < 0xFF; i++) {}
-}
-
-
-int task2Flag;
-void task2Entry (void * param) 
-{
-    for (;;) 
-    {
-		
-        task2Flag = 1;
-        delay();
-        task2Flag = 0;
-        delay();
-  //      tTaskSched();
-    }
-}
-
-int task3Flag;
-void task3Entry (void * param)
-{
-    for (;;)
-    {
-        task3Flag = 1;
-        delay();
-        task3Flag = 0;
-        delay();
-    }
-}
 
 int flag;
 
-tTask tTask1;
-tTask tTask2;
-tTask tTask3;
-tTaskStack task1Env[1024];     
-tTaskStack task2Env[1024];
-tTaskStack task3Env[1024];
 
 // 用于空闲任务的任务结构和堆栈空间
 tTask tTaskIdle;
@@ -301,9 +185,7 @@ int main()
 	tTaskSchedInit();
 	
 	tTaskDelayedInit();
-	tTaskInit(&tTask1,task1Entry,(void *)0x11111111,0, &task1Env[1024]);
-	tTaskInit(&tTask2,task2Entry,(void *)0x22222222,1,&task2Env[1024]);
-	tTaskInit(&tTask3, task3Entry, (void *)0x33333333, 1, &task3Env[1024]);
+	tInitApp();
 	
 	tTaskInit(&tTaskIdle, idleTaskEntry, (void *)0,TINYOS_PRO_COUNT-1,&idleTaskEnv[1024]);
 	
