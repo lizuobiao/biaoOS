@@ -13,7 +13,7 @@ tTask * idleTask;
 tBitmap taskPrioBitmap;
 
 // 所有任务的指针数组：简单起见，只使用两个任务
-tTask * taskTable[TINYOS_PRO_COUNT];
+tList taskTable[TINYOS_PRO_COUNT];
 
 uint8_t schedLockCount;
 
@@ -39,27 +39,38 @@ void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,u
     *(--stack) = (unsigned long)0x5;                    // R5, 未用
     *(--stack) = (unsigned long)0x4;                    // R4, 未用
 	
+	task->slice = TINYOS_SLICE_MAX; 
 	task->stack = stack; 
 	task->delayTicks = 0;
     task->prio = prio;                                  // 设置任务的优先级
 	task->state = TINYOS_TASK_STATE_RDY;                // 设置任务为就绪状态
 
+	 tNodeInit(&(task->linkNode)); 
     tNodeInit(&(task->delayNode));
 	
-    taskTable[prio] = task;                             // 填入任务优先级表
+    tListAddLast(&taskTable[prio], &(task->linkNode));   // 填入任务优先级表
     tBitmapSet(&taskPrioBitmap, prio);                  // 标记优先级位置中的相应位
 }
 
 tTask * tTaskHighestReady (void) 
 {
     uint32_t highestPrio = tBitmapGetFirstSet(&taskPrioBitmap);
-    return taskTable[highestPrio];
+    tNode * node = tListFirst(&taskTable[highestPrio]);
+    return (tTask *)tNodeParent(node, tTask, linkNode);
 }
 
 void tTaskSchedInit (void)
 {
+	int i;
     schedLockCount = 0;
+	
+	tBitmapInit(&taskPrioBitmap);
+    for (i = 0; i < TINYOS_PRO_COUNT; i++)
+    {
+        tListInit(&taskTable[i]);
+    }
 }
+
 
 void tTaskSchedDisable (void) 
 {
@@ -90,14 +101,17 @@ void tTaskSchedEnable (void)
 
 void tTaskSchedRdy (tTask * task)
 {
-    taskTable[task->prio] = task;
+    tListAddLast(&taskTable[task->prio], &(task->linkNode));
     tBitmapSet(&taskPrioBitmap, task->prio);
 }
 
 void tTaskSchedUnRdy (tTask * task)
 {
-    taskTable[task->prio] = (tTask *)0;
-    tBitmapClear(&taskPrioBitmap, task->prio);
+    tListRemove(&taskTable[task->prio], &(task->linkNode));
+    if (tListCount(&taskTable[task->prio]) == 0)
+    {
+        tBitmapClear(&taskPrioBitmap, task->prio);
+    }
 }
 
 void tTaskSched () 
@@ -161,6 +175,20 @@ void tTaskSystemTickHandler ()
         }
     }
     
+	if (--currentTask->slice == 0)
+    {
+        // 如果当前任务中还有其它任务的话，那么切换到下一个任务
+        // 方法是将当前任务从队列的头部移除，插入到尾部
+        // 这样后面执行tTaskSched()时就会从头部取出新的任务取出新的任务作为当前任务运行
+        if (tListCount(&taskTable[currentTask->prio]) > 0)
+        {
+            tListRemoveFirst(&taskTable[currentTask->prio]);
+            tListAddLast(&taskTable[currentTask->prio], &(currentTask->linkNode));
+
+            // 重置计数器
+            currentTask->slice = TINYOS_SLICE_MAX;
+        }
+    }
 	
 	tTaskExitCritical(status);
     // 这个过程中可能有任务延时完毕(delayTicks = 0)，进行一次调度。
@@ -198,10 +226,6 @@ void SysTick_Handler ()
 }
 
 
-void delay(int count)
-{
-	while(--count);
-}
 
 int task1Flag;
 void task1Entry (void * param) 
@@ -217,6 +241,13 @@ void task1Entry (void * param)
     }
 }
 
+void delay ()
+{
+    int i;
+    for (i = 0; i < 0xFF; i++) {}
+}
+
+
 int task2Flag;
 void task2Entry (void * param) 
 {
@@ -224,10 +255,22 @@ void task2Entry (void * param)
     {
 		
         task2Flag = 1;
-        tTaskDelay(1);
+        delay();
         task2Flag = 0;
-        tTaskDelay(1);
+        delay();
   //      tTaskSched();
+    }
+}
+
+int task3Flag;
+void task3Entry (void * param)
+{
+    for (;;)
+    {
+        task3Flag = 1;
+        delay();
+        task3Flag = 0;
+        delay();
     }
 }
 
@@ -235,8 +278,10 @@ int flag;
 
 tTask tTask1;
 tTask tTask2;
+tTask tTask3;
 tTaskStack task1Env[1024];     
 tTaskStack task2Env[1024];
+tTaskStack task3Env[1024];
 
 // 用于空闲任务的任务结构和堆栈空间
 tTask tTaskIdle;
@@ -258,9 +303,9 @@ int main()
 	tTaskDelayedInit();
 	tTaskInit(&tTask1,task1Entry,(void *)0x11111111,0, &task1Env[1024]);
 	tTaskInit(&tTask2,task2Entry,(void *)0x22222222,1,&task2Env[1024]);
+	tTaskInit(&tTask3, task3Entry, (void *)0x33333333, 1, &task3Env[1024]);
 	
 	tTaskInit(&tTaskIdle, idleTaskEntry, (void *)0,TINYOS_PRO_COUNT-1,&idleTaskEnv[1024]);
-    idleTask = &tTaskIdle;
 	
 	nextTask = tTaskHighestReady();
 	

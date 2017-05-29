@@ -13,6 +13,8 @@ typedef struct tTask{
 
 	tTaskStack * stack;
 	
+	tNode linkNode;
+	
 	uint32_t delayTicks;
 	
 	tNode delayNode;
@@ -20,6 +22,8 @@ typedef struct tTask{
 	uint32_t prio;
 	
 	uint32_t state;
+	
+	uint32_t slice;
 }tTask;
 
 extern tTask * currentTask;
