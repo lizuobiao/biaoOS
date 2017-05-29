@@ -6,13 +6,20 @@
 #include "tconfig.h"
 typedef uint32_t tTaskStack;
 
+#define TINYOS_TASK_STATE_RDY                   0
+#define TINYOS_TASK_STATE_DELAYED               (1 << 1)
+
 typedef struct tTask{
 
 	tTaskStack * stack;
 	
 	uint32_t delayTicks;
 	
+	tNode delayNode;
+	
 	uint32_t prio;
+	
+	uint32_t state;
 }tTask;
 
 extern tTask * currentTask;

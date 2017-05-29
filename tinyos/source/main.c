@@ -17,6 +17,8 @@ tTask * taskTable[TINYOS_PRO_COUNT];
 
 uint8_t schedLockCount;
 
+tList tTaskDelayedList;
+
 void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,uint32_t * stack)
 {
 	
@@ -40,7 +42,10 @@ void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,u
 	task->stack = stack; 
 	task->delayTicks = 0;
     task->prio = prio;                                  // 设置任务的优先级
+	task->state = TINYOS_TASK_STATE_RDY;                // 设置任务为就绪状态
 
+    tNodeInit(&(task->delayNode));
+	
     taskTable[prio] = task;                             // 填入任务优先级表
     tBitmapSet(&taskPrioBitmap, prio);                  // 标记优先级位置中的相应位
 }
@@ -82,6 +87,19 @@ void tTaskSchedEnable (void)
 
     tTaskExitCritical(status);
 }
+
+void tTaskSchedRdy (tTask * task)
+{
+    taskTable[task->prio] = task;
+    tBitmapSet(&taskPrioBitmap, task->prio);
+}
+
+void tTaskSchedUnRdy (tTask * task)
+{
+    taskTable[task->prio] = (tTask *)0;
+    tBitmapClear(&taskPrioBitmap, task->prio);
+}
+
 void tTaskSched () 
 {
 	tTask * tempTask;
@@ -107,19 +125,39 @@ void tTaskSched ()
 	tTaskExitCritical(status);
 }
 
+void tTaskDelayedInit (void) 
+{
+    tListInit(&tTaskDelayedList);
+}
+
+void tTimeTaskWait (tTask * task, uint32_t ticks)
+{
+    task->delayTicks = ticks;
+    tListAddLast(&tTaskDelayedList, &(task->delayNode)); 
+    task->state |= TINYOS_TASK_STATE_DELAYED;
+}
+
+void tTimeTaskWakeUp (tTask * task)
+{
+    tListRemove(&tTaskDelayedList, &(task->delayNode));
+    task->state &= ~TINYOS_TASK_STATE_DELAYED;
+}
 void tTaskSystemTickHandler () 
 {
     // 检查所有任务的delayTicks数，如果不0的话，减1。
-    int i;
+	tNode * node;
 	uint32_t status = tTaskEnterCritical();
-    for (i = 0; i < TINYOS_PRO_COUNT; i++) 
+	
+    for (node = tTaskDelayedList.headNode.nextNode; node != &(tTaskDelayedList.headNode); node = node->nextNode)
     {
-        if (taskTable[i]->delayTicks > 0)
+        tTask * task = tNodeParent(node, tTask, delayNode);
+        if (--task->delayTicks == 0) 
         {
-            taskTable[i]->delayTicks--;
-        }else 
-        {
-            tBitmapSet(&taskPrioBitmap, i);
+            // 将任务从延时队列中移除
+            tTimeTaskWakeUp(task);
+
+            // 将任务恢复到就绪状态
+            tTaskSchedRdy(task);            
         }
     }
     
@@ -132,12 +170,14 @@ void tTaskSystemTickHandler ()
 void tTaskDelay (uint32_t delay) {
 	
 	uint32_t status = tTaskEnterCritical();
-    // 配置好当前要延时的ticks数
-    currentTask->delayTicks = delay;
-	tBitmapClear(&taskPrioBitmap, currentTask->prio);
+
+	tTimeTaskWait(currentTask, delay);
+	
+	tTaskSchedUnRdy(currentTask);
+
 	tTaskExitCritical(status);
-    // 然后进行任务切换，切换至另一个任务，或者空闲任务
-    // delayTikcs会在时钟中断中自动减1.当减至0时，会切换回来继续运行。
+
+	
     tTaskSched();
 }
 
@@ -163,28 +203,12 @@ void delay(int count)
 	while(--count);
 }
 
-int firstSet;
 int task1Flag;
-tList list;
-tNode node[8];
 void task1Entry (void * param) 
 {
-	int i = 0;
 	tSetSysTickPeriod(10);
-	tListInit(&list);
-    for (i = 0; i < 8; i++) 
-    {
-        tNodeInit(&node[i]);
-        tListAddFirst(&list, &node[i]);
-    }
-
-    for (i = 0; i < 8; i++) 
-    {
-        tListRemoveFirst(&list);
-    }
     for (;;) 
     {
-		
 		task1Flag = 1;
         tTaskDelay(1);
         task1Flag = 0;
@@ -230,11 +254,10 @@ void idleTaskEntry (void * param) {
 int main()
 {
 	tTaskSchedInit();
+	
+	tTaskDelayedInit();
 	tTaskInit(&tTask1,task1Entry,(void *)0x11111111,0, &task1Env[1024]);
 	tTaskInit(&tTask2,task2Entry,(void *)0x22222222,1,&task2Env[1024]);
-	
-	taskTable[0] = &tTask1;
-    taskTable[1] = &tTask2;
 	
 	tTaskInit(&tTaskIdle, idleTaskEntry, (void *)0,TINYOS_PRO_COUNT-1,&idleTaskEnv[1024]);
     idleTask = &tTaskIdle;
