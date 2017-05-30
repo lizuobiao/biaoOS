@@ -149,6 +149,13 @@ void tTaskSystemTickHandler ()
         tTask * task = tNodeParent(node, tTask, delayNode);
         if (--task->delayTicks == 0) 
         {
+			
+			if (task->waitEvent) 
+            {
+                // 此时，消息为空，等待结果为超时
+                tEventRemoveTask(task, (void *)0, tErrorTimeout);
+            }
+			
             // 将任务从延时队列中移除
             tTimeTaskWakeUp(task);
 

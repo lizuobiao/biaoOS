@@ -3,6 +3,8 @@
 .\objects\main.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\main.o: source\tLib.h
 .\objects\main.o: source\tconfig.h
+.\objects\main.o: source\tTask.h
+.\objects\main.o: source\tEvent.h
 .\objects\main.o: F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include\ARMCM3.h
 .\objects\main.o: F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cm3.h
 .\objects\main.o: F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cmInstr.h
