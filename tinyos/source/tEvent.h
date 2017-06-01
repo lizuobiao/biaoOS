@@ -9,6 +9,7 @@
 typedef enum  _tEventType {   
     tEventTypeUnknown   = 0, 				// 未知类型
 	tEventTypeSem,
+	tEventTypeMbox,
  }tEventType;
 
 // Event控制结构

@@ -6,3 +6,4 @@
 .\objects\tsem.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\tsem.o: source\tTask.h
 .\objects\tsem.o: source\tinyOS.h
+.\objects\tsem.o: source\tMBox.h

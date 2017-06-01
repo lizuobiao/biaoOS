@@ -1,0 +1,6 @@
+-c --cpu Cortex-M3 --li -g -O0 --apcs=interwork --split_sections
+-I C:\Users\Administrator\Desktop\tinyOS\biaoRTOS\tinyos\RTE
+-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include
+-I F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include
+-D__UVISION_VERSION="514" -D_RTE_ -DARMCM3
+-o .\objects\tmbox.o --omf_browse .\objects\tmbox.crf --depend .\objects\tmbox.d "source\tMBox.c"

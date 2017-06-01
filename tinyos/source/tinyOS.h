@@ -7,12 +7,14 @@
 #include "tTask.h"
 #include "tEvent.h"
 #include "tSem.h"
+#include "tMBox.h"
 
 typedef enum _tError {
     tErrorNoError = 0,                              // 没有错误
     tErrorTimeout,                                  // 等待超时
     tErrorResourceUnavaliable,                 		// 等待超时
 	tErrorDel,	
+	tErrorResourceFull,	
 }tError;
 
 extern tTask * currentTask;

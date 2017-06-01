@@ -6,6 +6,7 @@
 .\objects\main.o: source\tTask.h
 .\objects\main.o: source\tEvent.h
 .\objects\main.o: source\tSem.h
+.\objects\main.o: source\tMBox.h
 .\objects\main.o: F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\Device\ARM\ARMCM3\Include\ARMCM3.h
 .\objects\main.o: F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cm3.h
 .\objects\main.o: F:\Keil_v5\ARM\PACK\ARM\CMSIS\4.5.0\CMSIS\Include\core_cmInstr.h
