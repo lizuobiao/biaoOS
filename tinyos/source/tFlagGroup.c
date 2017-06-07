@@ -18,6 +18,7 @@
 #include "tFlagGroup.h"
 #include "tinyOS.h"
 
+#if TINYOS_ENABLE_FLAGGROUP == 1
 /**********************************************************************************************************
 ** Function name        :   tFlagGroupInit
 ** Descriptions         :   初始化事件标志组
@@ -229,7 +230,7 @@ uint32_t tFlagGroupDestroy (tFlagGroup * flagGroup)
     return count;
 }
 
-
+#endif
 
 
 

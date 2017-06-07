@@ -18,6 +18,8 @@
 #include "tMutex.h"
 #include "tinyOS.h"
 
+#if TINYOS_ENABLE_MUTEX == 1
+
 /**********************************************************************************************************
 ** Function name        :   tMutexInit
 ** Descriptions         :   初始化互斥信号量
@@ -207,3 +209,6 @@ uint32_t tMutexNotify (tMutex * mutex)
     tTaskExitCritical(status);
     return tErrorNoError;
 }
+
+#endif
+

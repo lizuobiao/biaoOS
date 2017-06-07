@@ -18,6 +18,7 @@
 #include "tTimer.h"
 #include "tinyOS.h"
 
+#if TINYOS_ENABLE_TIMER == 1
 // "硬"定时器列表
 static tList tTimerHardList;
 
@@ -286,3 +287,4 @@ void tTimerInitTask (void)
 
 }
 
+#endif

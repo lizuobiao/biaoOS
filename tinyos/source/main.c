@@ -202,7 +202,9 @@ void tTaskSystemTickHandler ()
 	
 	tTaskExitCritical(status);
 	
+#if TINYOS_ENABLE_TIMER == 1	
 	tTimerModuleTickNotify();
+#endif
 	
     // 这个过程中可能有任务延时完毕(delayTicks = 0)，进行一次调度。
     tTaskSched();
@@ -302,9 +304,9 @@ void idleTaskEntry (void * param) {
 	tTaskSchedDisable();
 	
 	tInitApp();
-	
+#if TINYOS_ENABLE_TIMER == 1
 	tTimerInitTask();
-	
+#endif
 	tSetSysTickPeriod(TINYOS_SYSTICK_MS);
 	
 	cpuUsageSyncWithSysTick();
@@ -321,9 +323,9 @@ int main()
 	tTaskSchedInit();
 	
 	tTaskDelayedInit();
-	
+#if TINYOS_ENABLE_TIMER == 1	
 	tTimerModuleInit();
-	
+#endif	
 	tTimeTickInit();
 
     // 初始化cpu统计

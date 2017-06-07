@@ -2,6 +2,8 @@
 
 #include "tinyOS.h"
 
+#if TINYOS_ENABLE_MEMBLOCK == 1
+
 void tMemBlockInit (tMemBlock * memBlock, uint8_t * memStart, uint32_t blockSize, uint32_t blockCnt)
 {
 	uint8_t * memBlockStart = (uint8_t *)memStart;
@@ -133,5 +135,7 @@ uint32_t tMemBlockDestroy (tMemBlock * memBlock)
     }
     return count;
 }
+
+#endif
 
 
