@@ -70,6 +70,32 @@ tTask * tEventWakeUp (tEvent * event, void * msg, uint32_t result)
     return task;         
 }
 
+void tEventWakeUpTask (tEvent * event, tTask * task, void * msg, uint32_t result)
+{
+    // 进入临界区
+    uint32_t status = tTaskEnterCritical();
+
+    tListRemove(&event->waitList, &task->linkNode);
+
+    // 设置收到的消息、结构，清除相应的等待标志位
+    task->waitEvent = (tEvent *)0;
+    task->eventMsg = msg;
+    task->waitEventResult = result;
+    task->state &= ~TINYOS_TASK_WAIT_MASK;
+
+    // 任务申请了超时等待，这里检查下，将其从延时队列中移除
+    if (task->delayTicks != 0)
+    {
+        tTimeTaskWakeUp(task);
+    }
+
+    // 将任务加入就绪队列
+    tTaskSchedRdy(task);
+
+    // 退出临界区
+    tTaskExitCritical(status);
+}
+
 void tEventRemoveTask (tTask * task, void * msg, uint32_t result)
 {     
  	  // 进入临界区

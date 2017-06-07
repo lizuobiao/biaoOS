@@ -1,9 +1,13 @@
 .\objects\app.o: source\app.c
 .\objects\app.o: source\tinyOS.h
 .\objects\app.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\app.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 .\objects\app.o: source\tLib.h
 .\objects\app.o: source\tconfig.h
 .\objects\app.o: source\tTask.h
 .\objects\app.o: source\tEvent.h
 .\objects\app.o: source\tSem.h
 .\objects\app.o: source\tMBox.h
+.\objects\app.o: source\tFlagGroup.h
+.\objects\app.o: source\tMutex.h
+.\objects\app.o: source\tTimer.h

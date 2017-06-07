@@ -1,0 +1,13 @@
+.\objects\tmutex.o: source\tMutex.c
+.\objects\tmutex.o: source\tMutex.h
+.\objects\tmutex.o: source\tConfig.h
+.\objects\tmutex.o: source\tEvent.h
+.\objects\tmutex.o: source\tLib.h
+.\objects\tmutex.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\tmutex.o: source\tTask.h
+.\objects\tmutex.o: source\tinyOS.h
+.\objects\tmutex.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+.\objects\tmutex.o: source\tSem.h
+.\objects\tmutex.o: source\tMBox.h
+.\objects\tmutex.o: source\tFlagGroup.h
+.\objects\tmutex.o: source\tTimer.h

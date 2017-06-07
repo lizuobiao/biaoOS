@@ -2,12 +2,17 @@
 #define _TIMYOS_H
 
 #include <stdint.h>
+#include "string.h"
 #include "tLib.h"
 #include "tconfig.h"
 #include "tTask.h"
 #include "tEvent.h"
 #include "tSem.h"
 #include "tMBox.h"
+#include "tFlagGroup.h"
+#include "tMutex.h"
+#include "tTimer.h"
+
 
 typedef enum _tError {
     tErrorNoError = 0,                              // 没有错误
@@ -15,7 +20,10 @@ typedef enum _tError {
     tErrorResourceUnavaliable,                 		// 等待超时
 	tErrorDel,	
 	tErrorResourceFull,	
+	tErrorOwner,
 }tError;
+
+#define TICKS_PER_SEC                   (1000 / TINYOS_SYSTICK_MS)
 
 extern tTask * currentTask;
 extern tTask * nextTask;
@@ -47,5 +55,6 @@ void tTaskSystemTickHandler (void);
 void tInitApp (void);
 void tSetSysTickPeriod(uint32_t ms);
 
+float tCpuUsageGet (void);
 #endif
 

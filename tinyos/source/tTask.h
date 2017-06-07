@@ -17,6 +17,11 @@ typedef struct tTask{
 
 	tTaskStack * stack;
 	
+	uint32_t * stackBase;
+
+    // 堆栈的总容量
+    uint32_t stackSize;
+	
 	tNode linkNode;
 	
 	uint32_t delayTicks;
@@ -42,6 +47,11 @@ typedef struct tTask{
     void * eventMsg;
 
     uint32_t waitEventResult;
+	    // 等待的事件方式
+    uint32_t waitFlagsType;
+
+    // 等待的事件标志
+    uint32_t eventFlags;
 }tTask;
 
 typedef struct _tTaskInfo {
@@ -60,9 +70,15 @@ typedef struct _tTaskInfo {
     // 被挂起的次数
     uint32_t suspendCount;
 	
+	uint32_t stackSize;
+
+    // 堆栈空余量
+    uint32_t stackFree;
+	
 }tTaskInfo;
 
-void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,uint32_t * stack);
+void tTaskInit (tTask * task, void (*entry)(void *), void *param, 
+					uint32_t prio, uint32_t * stack, uint32_t size);
 void tTaskSuspend (tTask * task) ;
 void tTaskWakeUp (tTask * task);
 

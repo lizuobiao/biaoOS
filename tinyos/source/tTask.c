@@ -1,32 +1,48 @@
 #include "tinyOS.h"
 
-void tTaskInit(tTask * task, void (*entry)(void *), void *param, uint32_t prio,uint32_t * stack)
+void tTaskInit (tTask * task,void (*entry)(void *), void *param, uint32_t prio, uint32_t * stack, uint32_t size)
 {
+	uint32_t * stackTop;
 	
-	*(--stack) = (unsigned long)(1<<24);                // XPSR, 设置了Thumb模式，恢复到Thumb状态而非ARM状态运行
-    *(--stack) = (unsigned long)entry;                  // 程序的入口地址
-    *(--stack) = (unsigned long)0x14;                   // R14(LR), 任务不会通过return xxx结束自己，所以未用
-    *(--stack) = (unsigned long)0x12;                   // R12, 未用
-    *(--stack) = (unsigned long)0x3;                    // R3, 未用
-    *(--stack) = (unsigned long)0x2;                    // R2, 未用
-    *(--stack) = (unsigned long)0x1;                    // R1, 未用
-    *(--stack) = (unsigned long)param;                  // R0 = param, 传给任务的入口函数
-    *(--stack) = (unsigned long)0x11;                   // R11, 未用
-    *(--stack) = (unsigned long)0x10;                   // R10, 未用
-    *(--stack) = (unsigned long)0x9;                    // R9, 未用
-    *(--stack) = (unsigned long)0x8;                    // R8, 未用
-    *(--stack) = (unsigned long)0x7;                    // R7, 未用
-    *(--stack) = (unsigned long)0x6;                    // R6, 未用
-    *(--stack) = (unsigned long)0x5;                    // R5, 未用
-    *(--stack) = (unsigned long)0x4;                    // R4, 未用
+	task->stackBase = stack;
+    task->stackSize = size;
+    memset(stack, 0, size);
+	
+	stackTop = stack + size / sizeof(tTaskStack);
+	
+	*(--stackTop) = (unsigned long)(1<<24);                // XPSR, 设置了Thumb模式，恢复到Thumb状态而非ARM状态运行
+    *(--stackTop) = (unsigned long)entry;                  // 程序的入口地址
+    *(--stackTop) = (unsigned long)0x14;                   // R14(LR), 任务不会通过return xxx结束自己，所以未用
+    *(--stackTop) = (unsigned long)0x12;                   // R12, 未用
+    *(--stackTop) = (unsigned long)0x3;                    // R3, 未用
+    *(--stackTop) = (unsigned long)0x2;                    // R2, 未用
+    *(--stackTop) = (unsigned long)0x1;                    // R1, 未用
+    *(--stackTop) = (unsigned long)param;                  // R0 = param, 传给任务的入口函数
+    *(--stackTop) = (unsigned long)0x11;                   // R11, 未用
+    *(--stackTop) = (unsigned long)0x10;                   // R10, 未用
+    *(--stackTop) = (unsigned long)0x9;                    // R9, 未用
+    *(--stackTop) = (unsigned long)0x8;                    // R8, 未用
+    *(--stackTop) = (unsigned long)0x7;                    // R7, 未用
+    *(--stackTop) = (unsigned long)0x6;                    // R6, 未用
+    *(--stackTop) = (unsigned long)0x5;                    // R5, 未用
+    *(--stackTop) = (unsigned long)0x4;                    // R4, 未用
 	
 	task->slice = TINYOS_SLICE_MAX; 
-	task->stack = stack; 
+	task->stack = stackTop; 
 	task->delayTicks = 0;
     task->prio = prio;                                  // 设置任务的优先级
 	task->state = TINYOS_TASK_STATE_RDY;                // 设置任务为就绪状态
+	
+	task->suspendCount = 0;                             // 初始挂起次数为0
+    task->clean = (void(*)(void *))0;                   // 设置清理函数
+    task->cleanParam = (void *)0;                       // 设置传递给清理函数的参数
+    task->requestDeleteFlag = 0;                        // 请求删除标记
+	
+	task->waitEvent = (tEvent *)0;                      // 没有等待事件
+    task->eventMsg = (void *)0;                         // 没有等待事件
+    task->waitEventResult = tErrorNoError;              // 没有等待事件错误
 
-	 tNodeInit(&(task->linkNode)); 
+	tNodeInit(&(task->linkNode)); 
     tNodeInit(&(task->delayNode));
 	
 	tTaskSchedRdy(task); 
@@ -186,6 +202,8 @@ void tTaskDeleteSelf (void)
 
 void tTaskGetInfo (tTask * task, tTaskInfo * info)
 {
+	uint32_t * stackEnd;
+
    // 进入临界区
     uint32_t status = tTaskEnterCritical();
 
@@ -194,6 +212,19 @@ void tTaskGetInfo (tTask * task, tTaskInfo * info)
     info->state = task->state;                          // 任务状态
     info->slice = task->slice;                          // 剩余时间片
     info->suspendCount = task->suspendCount;            // 被挂起的次数
+	
+	info->stackSize = task->stackSize;
+
+    // 计算堆栈使用量
+    info->stackFree = 0;
+    stackEnd = task->stackBase;
+    while ((*stackEnd++ == 0) && (stackEnd <= task->stackBase + task->stackSize / sizeof(tTaskStack)))
+    {
+        info->stackFree++;
+    }
+
+    // 转换成字节数
+    info->stackFree *= sizeof(tTaskStack);
 
     // 退出临界区
     tTaskExitCritical(status); 

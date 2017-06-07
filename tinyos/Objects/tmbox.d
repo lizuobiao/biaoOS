@@ -6,4 +6,8 @@
 .\objects\tmbox.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 .\objects\tmbox.o: source\tTask.h
 .\objects\tmbox.o: source\tinyOS.h
+.\objects\tmbox.o: F:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 .\objects\tmbox.o: source\tSem.h
+.\objects\tmbox.o: source\tFlagGroup.h
+.\objects\tmbox.o: source\tMutex.h
+.\objects\tmbox.o: source\tTimer.h
